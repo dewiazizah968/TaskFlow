@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Search Results</title>
+</head>
+<body>
+
+<h1>Search Results</h1>
+
+<p>
+    Keyword:
+    <strong th:text="${keyword}">keyword</strong>
+</p>
+
+<a href="/dashboard">Back to Dashboard</a>
+
+<hr>
+
+<h2>Projects</h2>
+
+<div th:if="${#lists.isEmpty(projectResults)}">
+    <p>No suitable projects found.</p>
+</div>
+
+<ul>
+    <li th:each="project : ${projectResults}">
+        <a th:href="@{/projects/{id}(id=${project.id})}"
+           th:text="${project.name}">
+            Project Name
+        </a>
+    </li>
+</ul>
+
+<hr>
+
+<h2>Tasks</h2>
+
+<div th:if="${#lists.isEmpty(taskResults)}">
+    <p>No matching tasks.</p>
+</div>
+
+<ul>
+    <li th:each="task : ${taskResults}">
+        <strong th:text="${task.title}">Task Title</strong>
+        -
+        Project:
+        <a th:href="@{/projects/{id}(id=${task.project.id})}"
+           th:text="${task.project.name}">
+            Project Name
+        </a>
+    </li>
+</ul>
+
+</body>
+</html>

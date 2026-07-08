@@ -1,0 +1,233 @@
+<div th:fragment="confirmModal">
+
+<style>
+.tf-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 27, 58, .45);
+    z-index: 1000;
+}
+
+.tf-confirm-box,
+.tf-error-box {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--surface, #fff);
+    border-radius: 20px;
+    width: 360px;
+    max-width: 92vw;
+    z-index: 1001;
+    overflow: hidden;
+}
+
+.tf-confirm-box { box-shadow: 0 24px 60px rgba(99, 102, 241, .25); }
+.tf-error-box { box-shadow: 0 24px 60px rgba(239, 68, 68, .2); }
+
+.tf-modal-topbar { height: 4px; }
+.tf-modal-topbar-brand { background: linear-gradient(90deg, #6366f1, #a855f7); }
+.tf-modal-topbar-danger { background: linear-gradient(90deg, #ef4444, #f97316); }
+
+.tf-modal-body { padding: 28px 28px 24px; }
+.tf-modal-body.tf-center { text-align: center; }
+
+.tf-modal-icon { font-size: 32px; text-align: center; margin-bottom: 10px; }
+.tf-error-icon { font-size: 36px; margin-bottom: 10px; }
+
+.tf-modal-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text-dark, #1e1b3a);
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.tf-modal-message {
+    font-size: 13px;
+    color: var(--text-muted, #6b7280);
+    text-align: center;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.tf-modal-actions { display: flex; gap: 10px; }
+
+.tf-btn-cancel {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid var(--border-color, #e6e4f7);
+    border-radius: 30px;
+    background: var(--surface, #fff);
+    color: var(--text-muted, #6b7280);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+}
+.tf-btn-cancel:hover { background: var(--bg, #f4f3ff); }
+
+.tf-btn-danger {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 30px;
+    background: linear-gradient(90deg, #ef4444, #f97316);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(239, 68, 68, .25);
+    transition: transform .15s, box-shadow .2s;
+}
+.tf-btn-danger:hover { transform: translateY(-2px); }
+
+.tf-btn-brand-full {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 30px;
+    background: linear-gradient(90deg, #6366f1, #a855f7);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(99, 102, 241, .25);
+}
+</style>
+
+<!-- Overlay -->
+<div id="confirmOverlay" class="tf-modal-overlay" onclick="cancelConfirm()"></div>
+
+<!-- Confirm box -->
+<div id="confirmBox" class="tf-confirm-box">
+    <div class="tf-modal-topbar tf-modal-topbar-brand"></div>
+    <div class="tf-modal-body">
+        <div class="tf-modal-icon" id="confirmIcon">⚠️</div>
+        <h3 class="tf-modal-title" id="confirmTitle">Are you sure?</h3>
+        <p class="tf-modal-message" id="confirmMessage">This action cannot be undone.</p>
+        <div class="tf-modal-actions">
+            <button class="tf-btn-cancel" onclick="cancelConfirm()">
+                Cancel
+            </button>
+            <button id="confirmYesBtn" class="tf-btn-danger">
+                Yes, continue
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Error popup -->
+<div id="errorOverlay" class="tf-modal-overlay" onclick="closeErrorPopup()"></div>
+
+<div id="errorBox" class="tf-error-box">
+    <div class="tf-modal-topbar tf-modal-topbar-danger"></div>
+    <div class="tf-modal-body tf-center">
+        <div class="tf-error-icon">🚫</div>
+        <h3 class="tf-modal-title" id="errorTitle">Access Denied</h3>
+        <p class="tf-modal-message" id="errorMessage">You are not allowed to perform this action.</p>
+        <button class="tf-btn-brand-full" onclick="closeErrorPopup()">
+            OK, I understand
+        </button>
+    </div>
+</div>
+
+<script>
+/* ─── Confirm modal ─── */
+let _confirmCallback = null;
+
+function showConfirm(options) {
+    /*
+      options = {
+        title: string,
+        message: string,
+        icon: string (emoji),
+        onConfirm: function | string (href/action for form submit)
+      }
+    */
+    document.getElementById('confirmTitle').textContent   = options.title   || 'Are you sure?';
+    document.getElementById('confirmMessage').textContent = options.message || 'This action cannot be undone.';
+    document.getElementById('confirmIcon').textContent    = options.icon    || '⚠️';
+
+    _confirmCallback = options.onConfirm;
+
+    document.getElementById('confirmOverlay').style.display = 'block';
+    document.getElementById('confirmBox').style.display     = 'block';
+}
+
+function cancelConfirm() {
+    document.getElementById('confirmOverlay').style.display = 'none';
+    document.getElementById('confirmBox').style.display     = 'none';
+    _confirmCallback = null;
+}
+
+document.getElementById('confirmYesBtn').addEventListener('click', () => {
+    // Save callback before cancelConfirm() nulls it out
+    const cb = _confirmCallback;
+    cancelConfirm();
+    if (typeof cb === 'function') {
+        cb();
+    } else if (typeof cb === 'string') {
+        window.location.href = cb;
+    } else if (cb && cb.form) {
+        cb.form.submit();
+    }
+});
+
+/* ─── Error popup ─── */
+function showErrorPopup(message, title) {
+    document.getElementById('errorTitle').textContent   = title   || 'Access Denied';
+    document.getElementById('errorMessage').textContent = message || 'You are not allowed to perform this action.';
+    document.getElementById('errorOverlay').style.display = 'block';
+    document.getElementById('errorBox').style.display     = 'block';
+}
+
+function closeErrorPopup() {
+    document.getElementById('errorOverlay').style.display = 'none';
+    document.getElementById('errorBox').style.display     = 'none';
+}
+
+/* ─── Intercept forms with data-confirm attribute ─── */
+document.addEventListener('DOMContentLoaded', () => {
+
+    /* Forms: <form data-confirm-title="..." data-confirm-message="..."> */
+    document.querySelectorAll('form[data-confirm-title]').forEach(form => {
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            showConfirm({
+                title:      form.dataset.confirmTitle,
+                message:    form.dataset.confirmMessage || 'This action cannot be undone.',
+                icon:       form.dataset.confirmIcon    || '⚠️',
+                onConfirm: () => form.submit()
+            });
+        });
+    });
+
+    /* Links: <a data-confirm-title="..." href="..."> */
+    document.querySelectorAll('a[data-confirm-title]').forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            showConfirm({
+                title:      link.dataset.confirmTitle,
+                message:    link.dataset.confirmMessage || 'This action cannot be undone.',
+                icon:       link.dataset.confirmIcon    || '⚠️',
+                onConfirm: () => { window.location.href = link.href; }
+            });
+        });
+    });
+
+    /* Check URL for statusError param (from task status update rejection) */
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('statusError')) {
+        const msg = params.get('statusError');
+        showErrorPopup(msg, 'Not Allowed');
+        /* Clean URL without reload */
+        const clean = window.location.pathname;
+        history.replaceState(null, '', clean);
+    }
+});
+</script>
+
+</div>

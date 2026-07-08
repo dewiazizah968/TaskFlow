@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:attr="data-theme=${user.themeMode}">
+<head>
+    <meta charset="UTF-8">
+    <title>TaskFlow - Projects</title>
+    <link rel="stylesheet" th:href="@{/css/projects.css}">
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
+</head>
+<body>
+
+<div class="app-shell">
+
+    <!-- SIDEBAR -->
+    <div th:replace="fragments/sidebar :: sidebar"></div>
+
+    <!-- MAIN AREA -->
+    <div class="main-area">
+
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <div class="topbar-title">
+                <h1>Projects</h1>
+                <p th:text="'Welcome, ' + ${user.name}">Welcome</p>
+            </div>
+            <div class="topbar-actions">
+                <form action="/search" method="get" class="search-form">
+                    <input type="text" name="keyword" placeholder="Search project or task..." required>
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+        </header>
+
+        <!-- CONTENT -->
+        <div class="projects-content">
+
+            <!-- LEFT: Project List -->
+            <section class="project-list">
+
+                <div th:if="${#lists.isEmpty(projects)}" class="empty-hint">
+                    No projects yet. Create your first project using the panel on the right.
+                </div>
+
+                <a th:each="project : ${projects}"
+                   th:href="@{/projects/{id}(id=${project.id})}"
+                   class="project-card">
+
+                    <div class="project-card-body">
+
+                        <div class="project-name" th:text="${project.name}">Project Name</div>
+                        <div class="project-desc" th:text="${project.description}">Description</div>
+
+                        <div class="project-meta">
+
+                            <span class="status-badge"
+                                  th:text="${projectStatusMap[project.id]}"
+                                  th:classappend="'status-' + ${#strings.replace(projectStatusMap[project.id],' ','-')}">
+                                Status
+                            </span>
+
+                            <div class="progress-wrap">
+                                <div class="progress-track">
+                                    <div class="progress-fill"
+                                         th:attr="data-progress=${projectProgressMap[project.id]}">
+                                    </div>
+                                </div>
+                                <span class="progress-label"
+                                      th:text="${#numbers.formatDecimal(projectProgressMap[project.id], 1, 1)} + '%'">
+                                    0%
+                                </span>
+                            </div>
+
+                            <span class="owner-tag"
+                                  th:text="'Owner: ' + ${project.owner.name}">
+                                Owner
+                            </span>
+
+                        </div>
+                    </div>
+
+                    <span class="detail-btn">Detail</span>
+
+                </a>
+
+            </section>
+
+            <!-- RIGHT: Create Project -->
+            <aside class="create-panel">
+
+                <h2>Create Projects</h2>
+
+                <form action="/projects/create" method="post">
+
+                    <div class="form-group">
+                        <label for="proj-name">Name</label>
+                        <input type="text" id="proj-name" name="name"
+                               placeholder="Project name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="proj-desc">Description</label>
+                        <textarea id="proj-desc" name="description"
+                                  rows="5" placeholder="What is this project about?"
+                                  required></textarea>
+                    </div>
+
+                    <button type="submit" class="create-btn">Create</button>
+
+                </form>
+
+            </aside>
+
+        </div><!-- /projects-content -->
+    </div><!-- /main-area -->
+</div><!-- /app-shell -->
+
+<!-- FRAGMENTS -->
+<div th:replace="fragments/profile-modal :: profileModal"></div>
+<div th:replace="fragments/confirm-modal :: confirmModal"></div>
+<div th:replace="fragments/search-popup :: searchPopup"></div>
+<div th:replace="fragments/footer :: footer"></div>
+
+<script>
+    /* Animate progress bars after render */
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.progress-fill[data-progress]').forEach(el => {
+            const v = parseFloat(el.getAttribute('data-progress')) || 0;
+            requestAnimationFrame(() => { el.style.width = Math.min(v, 100) + '%'; });
+        });
+    });
+</script>
+
+</body>
+</html>

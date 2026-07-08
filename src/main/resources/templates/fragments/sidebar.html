@@ -1,0 +1,62 @@
+<div th:fragment="sidebar" class="sidebar">
+
+        <div class="sidebar-profile" onclick="openProfileModal()">
+
+            <img th:if="${user.profileImagePath != null}"
+                 th:src="@{/profile/image}"
+                 class="avatar-circle">
+
+            <div th:if="${user.profileImagePath == null}"
+                 th:text="${#strings.substring(user.name,0,1).toUpperCase()}"
+                 th:style="'background:' + ${avatarColor} + ';'"
+                 class="avatar-circle">
+            </div>
+
+            <h3 th:text="${user.name}">User</h3>
+            <small>Click to change profile photo</small>
+
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="/dashboard"
+               th:class="${currentPage == 'dashboard'} ? 'nav-item active' : 'nav-item'">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
+                </svg>
+                Dashboard
+            </a>
+            <a href="/projects"
+               th:class="${currentPage == 'projects'} ? 'nav-item active' : 'nav-item'">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" fill="currentColor"/>
+                </svg>
+                Projects
+            </a>
+            <a href="/calendar"
+               th:class="${currentPage == 'calendar'} ? 'nav-item active' : 'nav-item'">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7 2v3M17 2v3M3.5 9h17M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" stroke="currentColor" stroke-width="1.8" fill="none"/>
+                </svg>
+                Calendar
+            </a>
+            <a href="/dashboard/export"
+               th:class="${currentPage == 'export'} ? 'nav-item active' : 'nav-item'">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Export PDF
+            </a>
+        </nav>
+
+        <div class="sidebar-logout">
+            <a href="#" class="nav-item"
+               onclick="showConfirm({title:'Logout',message:'Are you sure you want to logout?',icon:'🚪',onConfirm:function(){document.getElementById('logoutForm').submit();}})">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Logout
+            </a>
+            <form id="logoutForm" action="/logout" method="post" style="display:none;"></form>
+        </div>
+
+</div>

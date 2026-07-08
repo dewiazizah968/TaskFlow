@@ -1,0 +1,222 @@
+<div th:fragment="searchPopup">
+
+<!-- Overlay -->
+<div id="searchOverlay" class="tf-search-overlay" onclick="closeSearchPopup()"></div>
+
+<!-- Popup -->
+<div id="searchPopup" class="tf-search-popup">
+
+    <!-- Search input bar inside popup -->
+    <div class="tf-search-bar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="tf-search-bar-icon">
+            <circle cx="11" cy="11" r="7" stroke="var(--primary-light, #818cf8)" stroke-width="2"/>
+            <path d="M16.5 16.5L21 21" stroke="var(--primary-light, #818cf8)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <input id="searchPopupInput" type="text" placeholder="Search projects or tasks…"
+               class="tf-search-bar-input"
+               oninput="handleSearchInput(this.value)"
+               onkeydown="if(event.key==='Escape')closeSearchPopup()">
+        <button onclick="closeSearchPopup()" class="tf-search-bar-close">✕</button>
+    </div>
+
+    <!-- Results area -->
+    <div id="searchResults" class="tf-search-results">
+        <div id="searchPlaceholder" class="sr-placeholder">
+            Type to search projects and tasks…
+        </div>
+    </div>
+
+</div>
+
+<style>
+.tf-search-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 27, 58, .5);
+    z-index: 300;
+    backdrop-filter: blur(2px);
+}
+
+.tf-search-popup {
+    display: none;
+    position: fixed;
+    top: 72px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 560px;
+    max-width: 94vw;
+    max-height: 80vh;
+    background: var(--surface, #fff);
+    border-radius: 20px;
+    box-shadow: 0 24px 60px rgba(99, 102, 241, .25);
+    z-index: 301;
+    overflow: hidden;
+    flex-direction: column;
+}
+
+.tf-search-bar {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color, #e6e4f7);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+.tf-search-bar-icon { flex-shrink: 0; }
+.tf-search-bar-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-dark, #1e1b3a);
+    background: transparent;
+}
+.tf-search-bar-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted, #6b7280);
+    font-size: 18px;
+    line-height: 1;
+    padding: 0 4px;
+}
+
+.tf-search-results {
+    overflow-y: auto;
+    padding: 8px 0;
+    flex: 1;
+}
+
+.sr-placeholder,
+.sr-empty {
+    padding: 32px;
+    text-align: center;
+    color: var(--text-muted, #a3a0c2);
+    font-size: 13px;
+}
+
+.sr-section-title {
+    font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+    color: var(--text-muted, #6b7280);padding:10px 20px 4px;
+}
+.sr-item {
+    display:flex;align-items:flex-start;gap:12px;
+    padding:11px 20px;cursor:pointer;
+    transition:background .12s;text-decoration:none;
+    color:inherit;
+}
+.sr-item:hover { background: var(--bg, #f4f3ff); }
+.sr-icon {
+    width:34px;height:34px;border-radius:10px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:15px;
+}
+.sr-icon-project { background:#ede9fe;color:#6366f1; }
+.sr-icon-task    { background:#fef3c7;color:#b45309; }
+.sr-icon-task.status-DONE { background:#dcfce7;color:#16a34a; }
+.sr-name { font-size:14px;font-weight:700;color: var(--text-dark, #1e1b3a);margin-bottom:2px; }
+.sr-meta { font-size:12px;color: var(--text-muted, #6b7280); }
+.sr-divider { height:1px;background: var(--border-color, #e6e4f7);margin:4px 0; }
+</style>
+
+<script>
+let searchTimer = null;
+
+/* Called when search form is submitted anywhere on page */
+function openSearchPopup(keyword) {
+    document.getElementById('searchOverlay').style.display = 'block';
+    const popup = document.getElementById('searchPopup');
+    popup.style.display = 'flex';
+    const input = document.getElementById('searchPopupInput');
+    input.value = keyword || '';
+    input.focus();
+    if (keyword) doSearch(keyword);
+}
+
+function closeSearchPopup() {
+    document.getElementById('searchOverlay').style.display = 'none';
+    document.getElementById('searchPopup').style.display = 'none';
+    document.getElementById('searchResults').innerHTML =
+        '<div id="searchPlaceholder" class="sr-placeholder">Type to search projects and tasks…</div>';
+}
+
+function handleSearchInput(val) {
+    clearTimeout(searchTimer);
+    if (!val.trim()) {
+        document.getElementById('searchResults').innerHTML =
+            '<div class="sr-placeholder">Type to search projects and tasks…</div>';
+        return;
+    }
+    document.getElementById('searchResults').innerHTML =
+        '<div class="sr-placeholder">Searching…</div>';
+    searchTimer = setTimeout(() => doSearch(val.trim()), 280);
+}
+
+function doSearch(keyword) {
+    fetch('/api/search?keyword=' + encodeURIComponent(keyword))
+        .then(r => r.json())
+        .then(data => renderResults(data))
+        .catch(() => {
+            document.getElementById('searchResults').innerHTML =
+                '<div class="sr-empty">Could not load results.</div>';
+        });
+}
+
+function renderResults(data) {
+    const el = document.getElementById('searchResults');
+    const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    let html = '';
+
+    /* Projects */
+    html += '<div class="sr-section-title">Projects</div>';
+    if (!data.projects || data.projects.length === 0) {
+        html += '<div class="sr-empty">No matching projects.</div>';
+    } else {
+        data.projects.forEach(p => {
+            html += `<a class="sr-item" href="/projects/${p.id}">
+                <div class="sr-icon sr-icon-project">📁</div>
+                <div>
+                    <div class="sr-name">${esc(p.name)}</div>
+                    <div class="sr-meta">${esc(p.description || '')}</div>
+                </div>
+            </a>`;
+        });
+    }
+
+    html += '<div class="sr-divider"></div>';
+
+    /* Tasks */
+    html += '<div class="sr-section-title">Tasks</div>';
+    if (!data.tasks || data.tasks.length === 0) {
+        html += '<div class="sr-empty">No matching tasks.</div>';
+    } else {
+        data.tasks.forEach(t => {
+            const isDone = t.status === 'DONE';
+            html += `<a class="sr-item" href="/projects/${t.projectId}">
+                <div class="sr-icon sr-icon-task ${isDone ? 'status-DONE' : ''}">${isDone ? '✓' : '📋'}</div>
+                <div>
+                    <div class="sr-name">${esc(t.title)}</div>
+                    <div class="sr-meta">${esc(t.projectName)} · ${(t.status||'').replace('_',' ')}</div>
+                </div>
+            </a>`;
+        });
+    }
+
+    el.innerHTML = html;
+}
+
+/* Intercept ALL search forms on page */
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.search-form').forEach(form => {
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            const kw = form.querySelector('input[name="keyword"]').value.trim();
+            if (kw) openSearchPopup(kw);
+        });
+    });
+});
+</script>
+
+</div>

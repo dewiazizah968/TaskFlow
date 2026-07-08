@@ -1,0 +1,58 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Sensitive / local-only files ###
+# Real config with DB credentials, Google OAuth2 secrets, Brevo SMTP
+# credentials, etc. Keep only a sanitized application.properties.example
+# in the repo and ignore the real one everywhere it might live.
+application.properties
+application.yml
+application.yaml
+application-*.properties
+application-*.yml
+src/main/resources/application.properties
+src/main/resources/application.yml
+!application.properties.example
+!application.yml.example
+!src/main/resources/application.properties.example
+!src/main/resources/application.yml.example
+
+# Personal notes, not meant for the repo
+note
+note.txt
+notes.txt
+
+# User-uploaded runtime files (task attachments, profile pictures, etc.)
+uploads/
+/uploads/

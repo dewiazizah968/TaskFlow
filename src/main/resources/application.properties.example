@@ -1,0 +1,40 @@
+spring.application.name=taskflow
+
+# --- PostgreSQL ---
+spring.datasource.url=jdbc:postgresql://localhost:5432/taskflow_db
+spring.datasource.username=your_db_username
+spring.datasource.password=your_db_password
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+spring.thymeleaf.cache=false
+
+# --- File uploads ---
+file.upload-dir=uploads/attachments
+profile.upload-dir=uploads/profiles
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
+
+# --- Google OAuth2 login ("Continue with Google") ---
+# Create credentials at https://console.cloud.google.com/apis/credentials
+# Authorized redirect URI: http://localhost:8080/login/oauth2/code/google
+spring.security.oauth2.client.registration.google.client-id=YOUR_GOOGLE_CLIENT_ID
+spring.security.oauth2.client.registration.google.client-secret=YOUR_GOOGLE_CLIENT_SECRET
+spring.security.oauth2.client.registration.google.scope=openid,profile,email
+spring.security.oauth2.client.provider.google.user-name-attribute=email
+
+# --- Password reset emails ("Forgot password") ---
+app.base-url=http://localhost:8080
+app.password-reset.expiry-minutes=30
+
+# --- Brevo SMTP relay (used to actually send emails) ---
+spring.mail.host=smtp-relay.brevo.com
+spring.mail.port=587
+spring.mail.username=YOUR_BREVO_SMTP_LOGIN
+spring.mail.password=YOUR_BREVO_SMTP_KEY
+app.mail.sender-name=TaskFlow
+app.mail.from-address=your-sender@yourdomain.com
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true

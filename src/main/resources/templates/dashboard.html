@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:attr="data-theme=${user.themeMode}">
+<head>
+    <meta charset="UTF-8">
+    <title>TaskFlow Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+
+    <!-- SIDEBAR -->
+    <div th:replace="fragments/sidebar :: sidebar"></div>
+
+    <!-- MAIN AREA -->
+    <div class="main-area">
+
+        <!-- TOPBAR -->
+        <header class="topbar">
+
+            <div class="topbar-title">
+                <h1>Dashboard</h1>
+                <p th:text="${dashboard.motivationMessage}">Keep moving forward.</p>
+            </div>
+
+            <div class="topbar-actions">
+
+                <button type="button"
+                        id="themeSwitch"
+                        class="theme-switch"
+                        role="switch"
+                        aria-checked="false"
+                        aria-label="Toggle day/night mode"
+                        th:attr="data-active=${user.themeMode}">
+                    <span class="theme-switch-knob">
+                        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="4.5" fill="currentColor"/>
+                            <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                                <path d="M12 2v2.5M12 19.5V22M22 12h-2.5M4.5 12H2M19.07 4.93l-1.77 1.77M6.7 17.3l-1.77 1.77M19.07 19.07l-1.77-1.77M6.7 6.7 4.93 4.93"/>
+                            </g>
+                        </svg>
+                        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 14.5A8.5 8.5 0 019.5 4 8.5 8.5 0 1020 14.5z" fill="currentColor"/>
+                        </svg>
+                    </span>
+                </button>
+
+                <div class="notif-wrapper">
+                    <a href="javascript:void(0)" class="notification-link" aria-label="Notifications" onclick="toggleNotifPanel()">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2a6 6 0 00-6 6v3.2c0 .5-.18 1-.5 1.4L4 14.5c-.7.85-.1 2.1 1 2.1h14c1.1 0 1.7-1.25 1-2.1l-1.5-1.9a2.2 2.2 0 01-.5-1.4V8a6 6 0 00-6-6zm0 20a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22z"/>
+                        </svg>
+                        <span th:if="${dashboard.totalNotifications > 0}"
+                            id="notifBadge"
+                            class="notif-badge"
+                            th:text="${dashboard.totalNotifications > 9 ? '9+' : dashboard.totalNotifications}">1</span>
+                    </a>
+
+                    <div class="notif-panel" id="notifPanel">
+                        <div class="notif-panel-header">
+                            <span class="notif-panel-title">Notifications</span>
+                            <span class="notif-panel-count" id="notifCount"></span>
+                        </div>
+                        <div class="notif-list" id="notifList">
+                            <div class="notif-loading">Loading…</div>
+                        </div>
+                    </div>
+                </div>
+
+                <form action="/search" method="get" class="search-form">
+                    <input type="text" name="keyword" placeholder="Search project or task..." required>
+                    <button type="submit">Search</button>
+                </form>
+
+            </div>
+
+        </header>
+
+        <!-- CONTENT -->
+        <main class="dashboard-content">
+
+            <!-- STAT CARDS -->
+            <section class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-label">Total Projects</div>
+                    <div class="stat-value" th:text="${dashboard.totalProjects}" th:attr="data-count-to=${dashboard.totalProjects}">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Tasks</div>
+                    <div class="stat-value" th:text="${dashboard.totalTasks}" th:attr="data-count-to=${dashboard.totalTasks}">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Completed Tasks</div>
+                    <div class="stat-value" th:text="${dashboard.completedTasks}" th:attr="data-count-to=${dashboard.completedTasks}">0</div>
+                </div>
+            </section>
+
+            <!-- CHARTS -->
+            <section class="charts-row" style="margin-top:20px;">
+
+                <div class="chart-card">
+                    <h4>Pie Chart Progress</h4>
+                    <div class="chart-wrap">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                    <div class="legend-row">
+                        <span><span class="legend-dot" style="background:#6366f1;"></span>Completed</span>
+                        <span><span class="legend-dot" style="background:#e6e4f7;"></span>Remaining</span>
+                        <span style="margin-left:auto; font-weight:700; color:var(--text-dark);"
+                              th:text="${#numbers.formatDecimal(dashboard.progressPercentage, 1, 1)} + '%'">0%</span>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h4>Bar Chart &mdash; Projects Status</h4>
+                    <div class="chart-wrap">
+                        <canvas id="projectsChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="collab-card">
+                    <h4>Member Collab</h4>
+
+                    <div th:if="${#lists.isEmpty(dashboard.collaborationMembers)}" class="empty-hint">
+                        No collaborators yet.
+                    </div>
+
+                    <div class="member-list">
+                        <div class="member-row" th:each="member : ${dashboard.collaborationMembers}">
+                            <img th:if="${member.hasPhoto}"
+                                 th:src="@{/profile/image/{id}(id=${member.id})}"
+                                 style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+                            <div th:if="${!member.hasPhoto}"
+                                 class="member-avatar"
+                                 th:text="${#strings.substring(member.name,0,1).toUpperCase()}"
+                                 th:style="'background:' + ${member.avatarColor} + ';'">U</div>
+                            <div class="member-name" th:text="${member.name}">Member Name</div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- LAST PROJECTS -->
+            <h2 class="section-title">Last Projects</h2>
+
+            <div th:if="${#lists.isEmpty(dashboard.topProjects)}" class="empty-hint">
+                No projects yet. Create your first project to see it here.
+            </div>
+
+            <section class="projects-row" th:unless="${#lists.isEmpty(dashboard.topProjects)}">
+                <a th:each="project : ${dashboard.topProjects}"
+                   th:href="@{/projects/{id}(id=${project.projectId})}"
+                   class="project-card">
+
+                    <div class="project-name" th:text="${project.projectName}">Project Name</div>
+
+                    <span class="status-badge"
+                          th:text="${project.projectStatus}"
+                          th:classappend="'status-' + ${#strings.replace(project.projectStatus,' ','-')}">
+                        Status
+                    </span>
+
+                    <div class="progress-track">
+                        <div class="progress-fill" th:attr="data-progress=${project.progressPercentage}"></div>
+                    </div>
+
+                    <div class="project-meta">
+                        <span th:text="${#numbers.formatDecimal(project.progressPercentage, 1, 1)}">0</span>% &middot;
+                        <span th:text="${project.completedTasks}">0</span>/<span th:text="${project.totalTasks}">0</span> tasks
+                    </div>
+
+                </a>
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<!-- FRAGMENTS -->
+<div th:replace="fragments/profile-modal :: profileModal"></div>
+<div th:replace="fragments/confirm-modal :: confirmModal"></div>
+<div th:replace="fragments/search-popup :: searchPopup"></div>
+<div th:replace="fragments/footer :: footer"></div>
+
+<script th:inline="javascript">
+    window.__dashboardData = {
+        totalProjects: /*[[${dashboard.totalProjects}]]*/ 0,
+        totalTasks: /*[[${dashboard.totalTasks}]]*/ 0,
+        completedTasks: /*[[${dashboard.completedTasks}]]*/ 0,
+        progressPercentage: /*[[${dashboard.progressPercentage}]]*/ 0,
+        completedProjects: /*[[${dashboard.completedProjects}]]*/ 0,
+        runningProjects: /*[[${dashboard.runningProjects}]]*/ 0,
+        pendingProjects: /*[[${dashboard.pendingProjects}]]*/ 0
+    };
+</script>
+<script th:src="@{/js/theme.js}"></script>
+<script th:src="@{/js/dashboard.js}"></script>
+
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>TaskFlow - Notifications</title>
+</head>
+<body>
+
+<h1>Notifications</h1>
+<h2>
+    Notification for
+    <span th:text="${user.name}">
+        User
+    </span>
+</h2>
+
+<a href="/dashboard">Back to Dashboard</a>
+
+<hr>
+
+<div th:if="${#lists.isEmpty(notifications)}">
+    <p>No notification yet.</p>
+</div>
+
+<div th:each="notification : ${notifications}">
+    <p th:text="${notification.message}">
+        Notification message
+    </p>
+
+    <small th:if="${notification.task != null}">
+        Task:
+        <span th:text="${notification.task.title}">Task Title</span>
+    </small>
+    <small th:if="${notification.task == null and notification.project != null}">
+        Project:
+        <span th:text="${notification.project.name}">Project Name</span>
+    </small>
+
+    <br>
+
+    <small>
+        Created At:
+        <span th:text="${notification.createdAt}">Date</span>
+    </small>
+
+    <hr>
+</div>
+
+</body>
+</html>

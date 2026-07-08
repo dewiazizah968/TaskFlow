@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:attr="data-theme=${user.themeMode}">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'TaskFlow – ' + ${project.name}">TaskFlow – Project Detail</title>
+    <link rel="stylesheet" th:href="@{/css/project-detail.css}">
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
+</head>
+<body th:attr="data-projectid=${project.id}">
+<div class="app-shell">
+    <div th:replace="fragments/sidebar :: sidebar"></div>
+    <div class="main-area">
+
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <a href="/projects" class="back-btn">&#8592;</a>
+                <span class="project-title" th:text="${project.name}">Project Name</span>
+            </div>
+            <div class="topbar-right">
+                <button class="btn btn-primary" onclick="openCreateTaskModal()">+ Create Task</button>
+                <div class="progress-widget">
+                    <div>
+                        <div class="progress-widget-label">Progress</div>
+                        <div class="progress-widget-track">
+                            <div class="progress-widget-fill" th:attr="data-progress=${projectProgress}"></div>
+                        </div>
+                    </div>
+                    <div class="progress-widget-pct"
+                         th:text="${#numbers.formatDecimal(projectProgress,1,1)} + '%'">0%</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ERROR BANNER -->
+        <div th:if="${param.error != null}"
+             style="margin:12px 24px 0;padding:10px 14px;border-radius:8px;background:#fee2e2;color:#991b1b;font-size:13px;">
+            <span th:text="${param.error[0]}">Error message</span>
+        </div>
+
+        <main class="detail-content">
+
+            <!-- INFO GRID -->
+            <div class="info-grid">
+                <div class="info-col">
+                    <div class="info-card">
+                        <div class="info-label">Description</div>
+                        <div class="info-value" th:text="${project.description}">–</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Owner</div>
+                        <div class="info-value" th:text="${project.owner.name}">–</div>
+                    </div>
+                </div>
+                <div class="info-col">
+                    <div class="info-card">
+                        <div class="info-label">Status</div>
+                        <span class="status-badge"
+                              th:text="${projectStatus}"
+                              th:classappend="'status-' + ${#strings.replace(projectStatus,' ','-')}">Status</span>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">
+                            Completed Tasks —
+                            <span th:text="${completedTasks}">0</span>/<span th:text="${totalTasks}">0</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill" th:attr="data-progress=${projectProgress}"></div>
+                        </div>
+                        <div class="info-value" style="margin-top:6px;font-size:13px;"
+                             th:text="${#numbers.formatDecimal(projectProgress,1,1)} + '%'">0%</div>
+                    </div>
+                </div>
+                <!-- Action column -->
+                <div class="action-col">
+                    <button class="btn btn-outline" onclick="openChatModal()"
+                            th:text="${#lists.isEmpty(members)} ? '📝 Memo' : '💬 Group Chat'">💬 Group Chat</button>
+                    <button class="btn btn-outline" onclick="openAddMemberModal()">👥 Add Members</button>
+                    <a th:href="@{/api/projects/{id}/report(id=${project.id})}" class="btn btn-outline">📤 Export Data</a>
+                    <!-- Owner-only actions -->
+                    <th:block th:if="${isOwner}">
+                        <button class="btn btn-outline" onclick="openEditProjectModal()" style="border-color:#818cf8;">✏️ Edit Project</button>
+                        <form th:action="@{/projects/{id}/delete(id=${project.id})}" method="post"
+                              data-confirm-title="Delete Project"
+                              data-confirm-message="This will permanently delete the project, all tasks, and all attachments. This cannot be undone."
+                              data-confirm-icon="⚠️">
+                            <button type="submit" class="btn" style="background:#fee2e2;color:#ef4444;border:none;width:100%;">🗑️ Delete Project</button>
+                        </form>
+                    </th:block>
+                </div>
+            </div>
+
+            <!-- TASKS -->
+            <div class="section-header">
+                <div class="section-title">Tasks</div>
+            </div>
+
+            <div th:if="${#lists.isEmpty(tasks)}" class="empty-hint">
+                No tasks yet. Click <strong>+ Create Task</strong> to add one.
+            </div>
+
+            <div class="tasks-grid" th:unless="${#lists.isEmpty(tasks)}">
+                <div th:each="task,iter : ${tasks}"
+                     class="task-card"
+                     th:classappend="'priority-' + ${task.priority}"
+                     th:attr="style='animation-delay:' + ${iter.index * 0.05} + 's'"
+                     onclick="openTaskDetail(this)"
+                     th:data-title="${task.title}"
+                     th:data-desc="${task.description}"
+                     th:data-status="${task.status}"
+                     th:data-priority="${task.priority}"
+                     th:data-assigned="${task.assignedUser != null ? task.assignedUser.name : '-'}"
+                     th:data-assigned-id="${task.assignedUser != null ? task.assignedUser.id : ''}"
+                     th:data-deadline="${task.deadline}"
+                     th:data-taskid="${task.id}"
+                     th:data-projectid="${project.id}">
+
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;">
+                        <div class="task-title" th:text="${task.title}">Task Title</div>
+                        <!-- Owner-only edit/delete icons -->
+                        <div th:if="${isOwner}" style="display:flex;gap:4px;flex-shrink:0;" onclick="event.stopPropagation()">
+                            <button title="Edit Task"
+                                    class="edit-task-btn"
+                                    th:data-taskid="${task.id}"
+                                    th:data-title="${task.title}"
+                                    th:data-desc="${task.description}"
+                                    th:data-priority="${task.priority}"
+                                    th:data-assigned-id="${task.assignedUser != null ? task.assignedUser.id : ''}"
+                                    th:data-deadline="${task.deadline != null ? #temporals.format(task.deadline,'yyyy-MM-dd''T''HH:mm') : ''}"
+                                    onclick="event.stopPropagation();handleEditTaskBtn(this)"
+                                    style="width:26px;height:26px;border-radius:8px;background:#ede9fe;border:none;
+                                           cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;">✏️</button>
+                            <form th:action="@{/projects/{p}/tasks/{t}/delete(p=${project.id},t=${task.id})}"
+                                  method="post"
+                                  data-confirm-title="Delete Task"
+                                  data-confirm-message="Delete this task and all its attachments permanently?"
+                                  data-confirm-icon="🗑️">
+                                <button type="submit"
+                                        style="width:26px;height:26px;border-radius:8px;background:#fee2e2;border:none;
+                                               cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;">🗑️</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="task-desc" th:text="${task.description}">Description</div>
+                    <div class="task-meta">
+                        <span class="task-status"
+                              th:text="${#strings.replace(task.status.name(),'_',' ')}"
+                              th:classappend="'status-' + ${task.status.name()}"></span>
+                        <span class="priority-chip" th:text="${task.priority}">LOW</span>
+                    </div>
+                    <div class="task-footer">
+                        <span>👤 <span th:text="${task.assignedUser != null ? task.assignedUser.name : 'Unassigned'}">–</span></span>
+                        <span th:if="${task.deadline != null}">📅 <span th:text="${#temporals.format(task.deadline,'dd MMM yyyy')}">–</span></span>
+                    </div>
+                    <form th:action="@{/projects/{p}/tasks/{t}/status(p=${project.id},t=${task.id})}"
+                          method="post" onclick="event.stopPropagation()">
+                        <select name="status" class="status-select" onchange="this.form.submit()">
+                            <option value="TODO"        th:selected="${task.status.name()=='TODO'}">To Do</option>
+                            <option value="IN_PROGRESS" th:selected="${task.status.name()=='IN_PROGRESS'}">In Progress</option>
+                            <option value="DONE"        th:selected="${task.status.name()=='DONE'}">Done</option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+
+            <!-- MEMBERS -->
+            <div class="section-header" style="margin-top:36px;">
+                <div class="section-title">Project Members</div>
+            </div>
+            <div th:if="${#lists.isEmpty(members)}" class="empty-hint">No members yet.</div>
+            <div class="members-strip" th:unless="${#lists.isEmpty(members)}">
+                <div class="member-chip" th:each="member : ${members}">
+                    <img th:if="${member.user.profileImagePath != null}"
+                         th:src="@{/profile/image/{id}(id=${member.user.id})}"
+                         style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+                    <div th:if="${member.user.profileImagePath == null}"
+                         class="member-avatar-sm"
+                         th:text="${#strings.substring(member.user.name,0,1).toUpperCase()}">U</div>
+                    <span>
+                        <span th:text="${member.user.name}">Name</span>
+                        <span style="color:var(--text-muted);font-size:11px;display:block;" th:text="${member.user.email}">email</span>
+                    </span>
+                    <!-- Remove member button (owner only, not owner themselves) -->
+                    <form th:if="${isOwner and member.user.id != project.owner.id}"
+                          th:action="@{/projects/{p}/members/{m}/remove(p=${project.id},m=${member.id})}"
+                          method="post"
+                          data-confirm-title="Remove Member"
+                          th:data-confirm-message="'Remove ' + ${member.user.name} + ' from this project?'"
+                          data-confirm-icon="👥"
+                          style="margin-left:auto;">
+                        <button type="submit"
+                                style="background:#fee2e2;border:none;border-radius:8px;padding:4px 8px;
+                                       color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;">✕ Remove</button>
+                    </form>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<!-- ─── MODALS ─── -->
+
+<!-- Create Task -->
+<div id="createTaskModal" class="modal-overlay" onclick="if(event.target===this)closeCreateTaskModal()">
+    <div class="modal-box">
+        <div class="modal-header"><h3>Create Task</h3><button class="modal-close" onclick="closeCreateTaskModal()">✕</button></div>
+        <form th:action="@{/projects/{id}/tasks/create(id=${project.id})}" method="post">
+            <div class="form-group"><label>Title</label><input type="text" name="title" placeholder="Task title" required></div>
+            <div class="form-group"><label>Description</label><textarea name="description" rows="3" placeholder="What needs to be done?" required></textarea></div>
+            <div class="form-row">
+                <div class="form-group"><label>Priority</label>
+                    <select name="priority" required>
+                        <option value="LOW">Low</option><option value="MEDIUM" selected>Medium</option><option value="HIGH">High</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Assign To</label>
+                    <select name="assignedUserId" required>
+                        <option value="">– Select member –</option>
+                        <option th:each="member : ${members}" th:value="${member.user.id}" th:text="${member.user.name}">Member</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group"><label>Deadline</label><input type="datetime-local" name="deadline" required></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:4px;">Create Task</button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Project (owner only) -->
+<div id="editProjectModal" class="modal-overlay" onclick="if(event.target===this)closeEditProjectModal()">
+    <div class="modal-box">
+        <div class="modal-header"><h3>Edit Project</h3><button class="modal-close" onclick="closeEditProjectModal()">✕</button></div>
+        <form th:action="@{/projects/{id}/edit(id=${project.id})}" method="post"
+              data-confirm-title="Save Changes" data-confirm-message="Update project name and description?" data-confirm-icon="💾">
+            <div class="form-group"><label>Project Name</label>
+                <input type="text" name="name" th:value="${project.name}" required></div>
+            <div class="form-group"><label>Description</label>
+                <textarea name="description" rows="4" th:text="${project.description}" required></textarea></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:4px;">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Task (owner only) -->
+<div id="editTaskModal" class="modal-overlay" onclick="if(event.target===this)closeEditTaskModal()">
+    <div class="modal-box">
+        <div class="modal-header"><h3>Edit Task</h3><button class="modal-close" onclick="closeEditTaskModal()">✕</button></div>
+        <form id="editTaskForm" method="post"
+              data-confirm-title="Save Changes" data-confirm-message="Save changes to this task?" data-confirm-icon="💾">
+            <div class="form-group"><label>Title</label><input type="text" name="title" id="editTaskTitle" required></div>
+            <div class="form-group"><label>Description</label><textarea name="description" id="editTaskDesc" rows="3" required></textarea></div>
+            <div class="form-row">
+                <div class="form-group"><label>Priority</label>
+                    <select name="priority" id="editTaskPriority" required>
+                        <option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Assign To</label>
+                    <select name="assignedUserId" id="editTaskAssigned" required>
+                        <option th:each="member : ${members}" th:value="${member.user.id}" th:text="${member.user.name}">Member</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group"><label>Deadline</label><input type="datetime-local" name="deadline" id="editTaskDeadline"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:4px;">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<!-- Add Member -->
+<div id="addMemberModal" class="modal-overlay" onclick="if(event.target===this)closeAddMemberModal()">
+    <div class="modal-box">
+        <div class="modal-header"><h3>Add Member</h3><button class="modal-close" onclick="closeAddMemberModal()">✕</button></div>
+        <form th:action="@{/projects/{id}/members/add(id=${project.id})}" method="post">
+            <div class="form-group"><label>Email</label><input type="email" name="email" placeholder="Enter member's email" required></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:4px;">Add Member</button>
+        </form>
+    </div>
+</div>
+
+<!-- Group Chat / Memo -->
+<div id="chatModal" class="modal-overlay" onclick="if(event.target===this)closeChatModal()">
+    <div class="modal-box chat-box">
+        <div class="modal-header">
+            <h3 th:text="${#lists.isEmpty(members)} ? '📝 Personal Memo' : '💬 Group Chat'">Group Chat</h3>
+            <button class="modal-close" onclick="closeChatModal()">✕</button>
+        </div>
+        <p class="chat-hint"
+           th:text="${#lists.isEmpty(members)}
+                ? 'Belum ada anggota lain di project ini — pakai ruang ini sebagai catatan pribadimu.'
+                : 'Pesan di sini bisa dilihat oleh semua anggota project ini.'">Hint</p>
+        <div id="chatMessages" class="chat-messages">
+            <div class="chat-loading">Loading…</div>
+        </div>
+        <form id="chatForm" onsubmit="return false;" class="chat-input-row">
+            <textarea id="chatInput" rows="1"
+                      th:placeholder="${#lists.isEmpty(members)} ? 'Tulis catatan…' : 'Tulis pesan…'"
+                      maxlength="2000"></textarea>
+            <button type="submit" class="btn btn-primary" onclick="sendChatMessage()">Kirim</button>
+        </form>
+    </div>
+</div>
+
+<!-- Task Detail -->
+<div id="taskDetailModal" class="modal-overlay" onclick="if(event.target===this)closeTaskDetailModal()">
+    <div class="modal-box">
+        <div class="modal-header"><h3 id="tdTitle">Task Detail</h3><button class="modal-close" onclick="closeTaskDetailModal()">✕</button></div>
+        <div class="detail-modal-row"><span class="detail-modal-label">Description</span><span class="detail-modal-value" id="tdDesc">–</span></div>
+        <div class="detail-modal-row"><span class="detail-modal-label">Status</span><span class="detail-modal-value" id="tdStatus">–</span></div>
+        <div class="detail-modal-row"><span class="detail-modal-label">Priority</span><span class="detail-modal-value" id="tdPriority">–</span></div>
+        <div class="detail-modal-row"><span class="detail-modal-label">Assigned To</span><span class="detail-modal-value" id="tdAssigned">–</span></div>
+        <div class="detail-modal-row"><span class="detail-modal-label">Deadline</span><span class="detail-modal-value" id="tdDeadline">–</span></div>
+        <div style="margin-top:16px;">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-bottom:10px;">Attachments</div>
+            <ul class="attach-list" id="tdAttachList"><li style="color:var(--text-muted);font-size:13px;">Loading…</li></ul>
+        </div>
+        <div style="margin-top:16px;border-top:1px solid var(--border-color);padding-top:16px;">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-bottom:10px;">Upload File</div>
+            <form id="uploadForm" method="post" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;">
+                <input type="file" name="file" required style="flex:1;font-size:13px;background:var(--input-bg);border:2px solid transparent;border-radius:10px;padding:8px 12px;cursor:pointer;">
+                <button type="submit" class="btn btn-primary" style="padding:9px 16px;">Upload</button>
+            </form>
+        </div>
+        <div style="margin-top:16px;border-top:1px solid var(--border-color);padding-top:16px;">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-bottom:10px;">Add External Link</div>
+            <form id="linkForm" method="post" style="display:flex;flex-direction:column;gap:8px;">
+                <input type="text" name="title" placeholder="Link title" required style="width:100%;padding:10px 14px;border:2px solid transparent;border-radius:10px;background:var(--input-bg);font-size:13px;color:var(--text-dark);">
+                <input type="url" name="linkUrl" placeholder="https://example.com" required style="width:100%;padding:10px 14px;border:2px solid transparent;border-radius:10px;background:var(--input-bg);font-size:13px;color:var(--text-dark);">
+                <button type="submit" class="btn btn-outline" style="align-self:flex-start;padding:9px 16px;">Save Link</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Image Preview -->
+<div id="imgPreviewOverlay" class="img-preview-overlay" onclick="if(event.target===this)closeImagePreview()">
+    <div class="img-preview-box">
+        <h3 id="previewTitle" style="font-size:15px;font-weight:700;">Preview</h3>
+        <img id="previewImage" src="" alt="Preview">
+        <div class="img-preview-actions">
+            <a id="downloadImage" href="" download class="btn btn-primary">Download</a>
+            <button onclick="closeImagePreview()" class="btn btn-outline">Close</button>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/profile-modal :: profileModal"></div>
+<div th:replace="fragments/confirm-modal :: confirmModal"></div>
+<div th:replace="fragments/search-popup :: searchPopup"></div>
+<div th:replace="fragments/footer :: footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.progress-fill[data-progress], .progress-widget-fill[data-progress]')
+        .forEach(el => requestAnimationFrame(() => {
+            el.style.width = Math.min(parseFloat(el.dataset.progress)||0, 100) + '%';
+        }));
+});
+
+function openCreateTaskModal()   { document.getElementById('createTaskModal').classList.add('show'); }
+function closeCreateTaskModal()  { document.getElementById('createTaskModal').classList.remove('show'); }
+function openAddMemberModal()    { document.getElementById('addMemberModal').classList.add('show'); }
+function closeAddMemberModal()   { document.getElementById('addMemberModal').classList.remove('show'); }
+function openEditProjectModal()  { document.getElementById('editProjectModal').classList.add('show'); }
+function closeEditProjectModal() { document.getElementById('editProjectModal').classList.remove('show'); }
+function closeEditTaskModal()    { document.getElementById('editTaskModal').classList.remove('show'); }
+
+function handleEditTaskBtn(btn) {
+    openEditTaskModal(
+        btn.dataset.taskid,
+        btn.dataset.title   || '',
+        btn.dataset.desc    || '',
+        btn.dataset.priority|| '',
+        btn.dataset.assignedId || '',
+        btn.dataset.deadline|| ''
+    );
+}
+
+function openEditTaskModal(taskId, title, desc, priority, assignedId, deadline) {
+    const projectId = document.querySelector('[data-projectid]')?.dataset.projectid;
+    document.getElementById('editTaskForm').action = `/projects/${projectId}/tasks/${taskId}/edit`;
+    document.getElementById('editTaskTitle').value    = title;
+    document.getElementById('editTaskDesc').value     = desc;
+    document.getElementById('editTaskDeadline').value = deadline || '';
+    const prioSel = document.getElementById('editTaskPriority');
+    for (let opt of prioSel.options) opt.selected = (opt.value === priority);
+    const assignSel = document.getElementById('editTaskAssigned');
+    for (let opt of assignSel.options) opt.selected = (opt.value == assignedId);
+    document.getElementById('editTaskModal').classList.add('show');
+}
+
+let currentTaskId = null, currentProjectId = null;
+
+function openTaskDetail(card) {
+    currentTaskId    = card.dataset.taskid;
+    currentProjectId = card.dataset.projectid;
+    document.getElementById('tdTitle').textContent    = card.dataset.title;
+    document.getElementById('tdDesc').textContent     = card.dataset.desc || '–';
+    document.getElementById('tdStatus').textContent   = (card.dataset.status||'').replace('_',' ');
+    document.getElementById('tdPriority').textContent = card.dataset.priority || '–';
+    document.getElementById('tdAssigned').textContent = card.dataset.assigned || '–';
+    document.getElementById('tdDeadline').textContent = formatDate(card.dataset.deadline);
+    document.getElementById('uploadForm').action =
+        `/projects/${currentProjectId}/tasks/${currentTaskId}/files/upload`;
+    document.getElementById('linkForm').action =
+        `/projects/${currentProjectId}/tasks/${currentTaskId}/links/add`;
+    loadAttachments(currentTaskId, currentProjectId);
+    document.getElementById('taskDetailModal').classList.add('show');
+}
+function closeTaskDetailModal() { document.getElementById('taskDetailModal').classList.remove('show'); }
+
+function loadAttachments(taskId, projectId) {
+    fetch(`/api/tasks/${taskId}/files`).then(r=>r.json()).then(files => {
+        const list = document.getElementById('tdAttachList');
+        if (!files || files.length === 0) { list.innerHTML='<li style="color:var(--text-muted);font-size:13px;">No attachments yet.</li>'; return; }
+        list.innerHTML = files.map(f => {
+            const isLink  = f.attachmentType === 'LINK';
+            const isImage = !isLink && f.fileType && f.fileType.startsWith('image');
+            const url     = isLink ? f.linkUrl : `/api/tasks/files/download/${f.id}`;
+            const onclick = isImage ? `onclick="openImagePreview('${url}','${f.fileName}');return false;"` : '';
+            return `<li class="attach-item">
+                <a href="${url}" target="_blank" class="attach-link" ${onclick}>${f.fileName}</a>
+                <button class="btn btn-danger" style="padding:5px 10px;font-size:11px;"
+                        onclick="confirmDeleteAttachment(${f.id},'${projectId}')">Delete</button>
+            </li>`;
+        }).join('');
+    }).catch(() => { document.getElementById('tdAttachList').innerHTML='<li style="color:var(--text-muted);font-size:13px;">Could not load attachments.</li>'; });
+}
+
+function confirmDeleteAttachment(fileId, projectId) {
+    showConfirm({ title:'Delete Attachment', message:'Remove this file permanently?', icon:'🗑️',
+        onConfirm: () => {
+            const form = document.createElement('form');
+            form.method = 'POST'; form.action = `/projects/${projectId}/files/${fileId}/delete`;
+            document.body.appendChild(form); form.submit();
+        }
+    });
+}
+
+function openImagePreview(url, title) {
+    document.getElementById('previewImage').src = url;
+    document.getElementById('downloadImage').href = url;
+    document.getElementById('previewTitle').textContent = title;
+    document.getElementById('imgPreviewOverlay').classList.add('show');
+}
+function closeImagePreview() { document.getElementById('imgPreviewOverlay').classList.remove('show'); }
+
+function formatDate(str) {
+    if (!str || str === 'null') return '–';
+    const d = new Date(str);
+    return isNaN(d) ? str : d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+/* ─── Group Chat / Memo ─── */
+
+const chatProjectId = document.body.dataset.projectid;
+let chatPollTimer = null;
+let chatLastId = 0;
+
+function openChatModal() {
+    document.getElementById('chatModal').classList.add('show');
+    if (chatLastId === 0) {
+        loadChatHistory();
+    }
+    if (!chatPollTimer) {
+        chatPollTimer = setInterval(pollNewChatMessages, 4000);
+    }
+    document.getElementById('chatInput').focus();
+}
+
+function closeChatModal() {
+    document.getElementById('chatModal').classList.remove('show');
+    if (chatPollTimer) {
+        clearInterval(chatPollTimer);
+        chatPollTimer = null;
+    }
+}
+
+function loadChatHistory() {
+    const box = document.getElementById('chatMessages');
+    fetch(`/api/projects/${chatProjectId}/chat/messages`)
+        .then(r => r.json())
+        .then(messages => {
+            box.innerHTML = '';
+            if (!messages || messages.length === 0) {
+                box.innerHTML = '<div class="chat-empty">Belum ada pesan. Mulai obrolan sekarang!</div>';
+            } else {
+                messages.forEach(appendChatMessage);
+            }
+            chatLastId = messages && messages.length ? messages[messages.length - 1].id : 0;
+            scrollChatToBottom();
+        })
+        .catch(() => { box.innerHTML = '<div class="chat-empty">Gagal memuat pesan.</div>'; });
+}
+
+function pollNewChatMessages() {
+    if (!document.getElementById('chatModal').classList.contains('show')) return;
+    fetch(`/api/projects/${chatProjectId}/chat/messages/after/${chatLastId}`)
+        .then(r => r.json())
+        .then(messages => {
+            if (!messages || messages.length === 0) return;
+            const box = document.getElementById('chatMessages');
+            const empty = box.querySelector('.chat-empty');
+            if (empty) empty.remove();
+            messages.forEach(appendChatMessage);
+            chatLastId = messages[messages.length - 1].id;
+            scrollChatToBottom();
+        })
+        .catch(() => {});
+}
+
+function sendChatMessage() {
+    const input = document.getElementById('chatInput');
+    const content = input.value.trim();
+    if (!content) return;
+
+    input.disabled = true;
+    fetch(`/api/projects/${chatProjectId}/chat/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+    })
+        .then(r => {
+            if (!r.ok) throw new Error('failed');
+            return r.json();
+        })
+        .then(message => {
+            const box = document.getElementById('chatMessages');
+            const empty = box.querySelector('.chat-empty');
+            if (empty) empty.remove();
+            appendChatMessage(message);
+            chatLastId = message.id;
+            input.value = '';
+            scrollChatToBottom();
+        })
+        .catch(() => alert('Gagal mengirim pesan. Coba lagi.'))
+        .finally(() => { input.disabled = false; input.focus(); });
+}
+
+function appendChatMessage(m) {
+    const box = document.getElementById('chatMessages');
+    const row = document.createElement('div');
+    row.className = 'chat-msg ' + (m.mine ? 'chat-msg-mine' : 'chat-msg-other');
+    row.innerHTML = `
+        <div class="chat-avatar">${escHtmlChat(m.senderInitial || '?')}</div>
+        <div class="chat-bubble">
+            <div class="chat-bubble-name">${escHtmlChat(m.senderName || '-')}</div>
+            <div class="chat-bubble-text">${escHtmlChat(m.content)}</div>
+            <div class="chat-bubble-time">${formatChatTime(m.createdAt)}</div>
+        </div>`;
+    box.appendChild(row);
+}
+
+function scrollChatToBottom() {
+    const box = document.getElementById('chatMessages');
+    box.scrollTop = box.scrollHeight;
+}
+
+function formatChatTime(str) {
+    if (!str) return '';
+    const d = new Date(str);
+    return isNaN(d) ? '' : d.toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+
+function escHtmlChat(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+    }
+});
+</script>
+</body>
+</html>
