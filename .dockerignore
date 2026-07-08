@@ -1,0 +1,14 @@
+target/
+uploads/
+.git/
+.gitignore
+.gitattributes
+.idea/
+.vscode/
+.mvn/
+mvnw
+mvnw.cmd
+*.md
+application.properties
+application.properties.example
+note.txt
