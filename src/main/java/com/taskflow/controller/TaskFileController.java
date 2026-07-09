@@ -4,7 +4,6 @@ import com.taskflow.dto.TaskLinkRequest;
 import com.taskflow.entity.TaskFile;
 import com.taskflow.service.TaskFileService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,8 +36,8 @@ public class TaskFileController {
     }
 
     @GetMapping("/files/download/{fileId}")
-    public ResponseEntity<Resource> downloadFile(
-            @PathVariable Long fileId) throws Exception {
+    public ResponseEntity<Void> downloadFile(
+            @PathVariable Long fileId) {
 
         return taskFileService.downloadFile(fileId);
     }

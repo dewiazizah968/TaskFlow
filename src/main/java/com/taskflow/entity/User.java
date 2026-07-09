@@ -30,6 +30,10 @@ public class User {
     @Column(name = "profile_image_path")
     private String profileImagePath;
 
+    /** Cloudinary public_id for the profile picture, used to delete/replace it. */
+    @Column(name = "profile_image_public_id")
+    private String profileImagePublicId;
+
     /**
      * Google account identifier ("sub" claim) linked to this user, if the
      * account was created or has ever signed in through "Continue with

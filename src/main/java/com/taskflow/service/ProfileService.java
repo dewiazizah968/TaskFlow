@@ -6,31 +6,26 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.*;
-import java.util.UUID;
-
 @Service
 @RequiredArgsConstructor
 public class ProfileService {
 
     private final UserRepository userRepository;
+    private final CloudinaryService cloudinaryService;
+
+    private static final String CLOUDINARY_FOLDER = "taskflow/profiles";
 
     public User uploadProfileImage(User user, MultipartFile file) throws Exception {
 
-        Path uploadPath = Paths.get("uploads/profiles");
-
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
+        // Clean up the old picture on Cloudinary (if any) before uploading the new one.
+        if (user.getProfileImagePublicId() != null) {
+            cloudinaryService.delete(user.getProfileImagePublicId(), "image");
         }
 
-        String originalFileName = file.getOriginalFilename();
-        String uniqueFileName = "profile_" + user.getId() + "_" + UUID.randomUUID() + "_" + originalFileName;
+        CloudinaryService.UploadResult uploaded = cloudinaryService.upload(file, CLOUDINARY_FOLDER);
 
-        Path filePath = uploadPath.resolve(uniqueFileName);
-
-        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-        user.setProfileImagePath(filePath.toString());
+        user.setProfileImagePath(uploaded.secureUrl());
+        user.setProfileImagePublicId(uploaded.publicId());
 
         return userRepository.save(user);
     }

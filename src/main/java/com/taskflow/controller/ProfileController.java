@@ -4,6 +4,7 @@ import com.taskflow.entity.User;
 import com.taskflow.repository.UserRepository;
 import com.taskflow.service.ProfileService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -11,11 +12,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.http.*;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.net.URI;
 import java.util.Map;
 
 @Controller
@@ -26,7 +23,7 @@ public class ProfileController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    /* ─ Upload photo ─ */
+    /* - Upload photo - */
     @PostMapping("/profile/upload")
     public String uploadProfileImage(
             @RequestParam("file") MultipartFile file,
@@ -37,18 +34,14 @@ public class ProfileController {
         return "redirect:/dashboard";
     }
 
-    /* ─ Serve photo ─ */
+    /* - Serve photo: now just a redirect to the Cloudinary URL - */
     @GetMapping("/profile/image")
-    @ResponseBody
-    public ResponseEntity<Resource> getProfileImage(Authentication authentication) throws Exception {
+    public ResponseEntity<Void> getProfileImage(Authentication authentication) {
         User user = getUser(authentication);
-        if (user.getProfileImagePath() == null) return ResponseEntity.notFound().build();
-        Path path = Paths.get(user.getProfileImagePath());
-        Resource resource = new UrlResource(path.toUri());
-        return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(resource);
+        return redirectToImage(user);
     }
 
-    /* ─ Update name & email ─ */
+    /* - Update name & email - */
     @PostMapping("/profile/update")
     @ResponseBody
     public ResponseEntity<Map<String, String>> updateProfile(
@@ -63,7 +56,7 @@ public class ProfileController {
         return ResponseEntity.ok(Map.of("message", "Profile updated."));
     }
 
-    /* ─ Change password ─ */
+    /* - Change password - */
     @PostMapping("/profile/change-password")
     @ResponseBody
     public ResponseEntity<Map<String, String>> changePassword(
@@ -89,14 +82,19 @@ public class ProfileController {
 
     /** Serve any user's profile image by their ID (for member lists) */
     @GetMapping("/profile/image/{userId}")
-    @ResponseBody
-    public ResponseEntity<Resource> getUserImage(@PathVariable Long userId) throws Exception {
+    public ResponseEntity<Void> getUserImage(@PathVariable Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
-        if (user.getProfileImagePath() == null) return ResponseEntity.notFound().build();
-        Path path = Paths.get(user.getProfileImagePath());
-        Resource resource = new UrlResource(path.toUri());
-        return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(resource);
+        return redirectToImage(user);
+    }
+
+    private ResponseEntity<Void> redirectToImage(User user) {
+        if (user.getProfileImagePath() == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(user.getProfileImagePath()))
+                .build();
     }
 
     private User getUser(Authentication authentication) {

@@ -5,17 +5,12 @@ import com.taskflow.entity.TaskFile;
 import com.taskflow.repository.TaskFileRepository;
 import com.taskflow.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.net.MalformedURLException;
-import java.nio.file.*;
+import java.net.URI;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -23,9 +18,9 @@ public class TaskFileService {
 
     private final TaskRepository taskRepository;
     private final TaskFileRepository taskFileRepository;
+    private final CloudinaryService cloudinaryService;
 
-    @Value("${file.upload-dir}")
-    private String uploadDir;
+    private static final String CLOUDINARY_FOLDER = "taskflow/attachments";
 
     public List<TaskFile> getFilesByTask(Task task) {
         return taskFileRepository.findByTask(task);
@@ -35,23 +30,14 @@ public class TaskFileService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task tidak ditemukan"));
 
-        Path uploadPath = Paths.get(uploadDir);
-
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
-        }
-
-        String originalFileName = file.getOriginalFilename();
-        String uniqueFileName = UUID.randomUUID() + "_" + originalFileName;
-
-        Path filePath = uploadPath.resolve(uniqueFileName);
-
-        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+        CloudinaryService.UploadResult uploaded = cloudinaryService.upload(file, CLOUDINARY_FOLDER);
 
         TaskFile taskFile = TaskFile.builder()
-                .fileName(originalFileName)
+                .fileName(file.getOriginalFilename())
                 .fileType(file.getContentType())
-                .filePath(filePath.toString())
+                .filePath(uploaded.secureUrl())
+                .cloudinaryPublicId(uploaded.publicId())
+                .cloudinaryResourceType(uploaded.resourceType())
                 .attachmentType("FILE")
                 .task(task)
                 .build();
@@ -74,55 +60,29 @@ public class TaskFileService {
         return taskFileRepository.save(taskFile);
     }
 
-    public ResponseEntity<Resource> downloadFile(Long fileId) throws MalformedURLException {
+    /**
+     * Files now live on Cloudinary, so "downloading" is just redirecting
+     * the browser to the file's public HTTPS URL.
+     */
+    public ResponseEntity<Void> downloadFile(Long fileId) {
         TaskFile taskFile = taskFileRepository.findById(fileId)
                 .orElseThrow(() -> new RuntimeException("File tidak ditemukan"));
 
-        Path path = Paths.get(taskFile.getFilePath());
-        Resource resource = new UrlResource(path.toUri());
-
-        if (!resource.exists()) {
-            throw new RuntimeException("File tidak ditemukan di folder uploads");
+        if (taskFile.getFilePath() == null) {
+            throw new RuntimeException("File tidak ditemukan di Cloudinary");
         }
 
-        String contentType = taskFile.getFileType();
-
-        if (contentType == null) {
-            contentType = "application/octet-stream";
-        }
-
-        ContentDisposition disposition;
-
-        if (contentType.startsWith("image")) {
-            disposition = ContentDisposition.inline()
-                    .filename(taskFile.getFileName())
-                    .build();
-        } else {
-            disposition = ContentDisposition.attachment()
-                    .filename(taskFile.getFileName())
-                    .build();
-        }
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
-                .body(resource);
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(taskFile.getFilePath()))
+                .build();
     }
 
     public void deleteFile(Long fileId) {
-
         TaskFile taskFile = taskFileRepository.findById(fileId)
-                .orElseThrow(() ->
-                        new RuntimeException("File tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("File tidak ditemukan"));
 
-        if (taskFile.getFilePath() != null) {
-
-            try {
-                Files.deleteIfExists(
-                        Paths.get(taskFile.getFilePath())
-                );
-            } catch (Exception ignored) {
-            }
+        if (taskFile.getCloudinaryPublicId() != null) {
+            cloudinaryService.delete(taskFile.getCloudinaryPublicId(), taskFile.getCloudinaryResourceType());
         }
 
         taskFileRepository.delete(taskFile);
