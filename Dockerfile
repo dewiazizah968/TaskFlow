@@ -19,8 +19,11 @@ COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080
 
-# JAVA_OPTS lets you tune JVM memory from Back4app's environment variables
-# without rebuilding the image. Default here is tuned to fit comfortably
-# inside a 256MB container (Back4app's free tier).
-ENV JAVA_OPTS="-Xmx180m -Xss512k -XX:MaxMetaspaceSize=100m -XX:+UseSerialGC"
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
+# JAVA_OPTS lets you tune JVM memory from Railway's environment variables
+# without rebuilding the image.
+ENV JAVA_OPTS="-Xmx512m"
+
+# Railway injects its own PORT env var at runtime (it's not fixed like
+# other platforms) - default to 8080 if it's not set, e.g. when running
+# this image locally.
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dserver.port=${PORT:-8080} -jar /app/app.jar"]
