@@ -19,7 +19,8 @@ COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080
 
-# JAVA_OPTS lets you tune JVM memory (e.g. -Xmx400m) from Northflank's
-# environment variables later without rebuilding the image.
-ENV JAVA_OPTS=""
+# JAVA_OPTS lets you tune JVM memory from Back4app's environment variables
+# without rebuilding the image. Default here is tuned to fit comfortably
+# inside a 256MB container (Back4app's free tier).
+ENV JAVA_OPTS="-Xmx180m -Xss512k -XX:MaxMetaspaceSize=100m -XX:+UseSerialGC"
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
