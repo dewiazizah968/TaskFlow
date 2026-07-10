@@ -16,9 +16,8 @@ import com.taskflow.entity.Task;
 import com.taskflow.repository.TaskFileRepository;
 import com.taskflow.repository.TaskHistoryRepository;
 import com.taskflow.entity.TaskFile;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import com.taskflow.repository.ProjectMemberRepository;
+import com.taskflow.repository.ProjectMessageRepository;
 import java.util.ArrayList;
 
 import java.util.List;
@@ -31,13 +30,15 @@ public class ProjectService {
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectMessageRepository projectMessageRepository;
     private final TaskFileRepository taskFileRepository;
     private final TaskHistoryRepository taskHistoryRepository;
+    private final CloudinaryService cloudinaryService;
 
     public Project createProject(ProjectRequest request) {
 
         User owner = userRepository.findById(request.getOwnerId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
 
         Project project = Project.builder()
                 .name(request.getName())
@@ -54,12 +55,12 @@ public class ProjectService {
 
     public Project getProjectById(Long id) {
         return projectRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
+                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
     }
 
     public Project updateProject(Long id, ProjectRequest request) {
         Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
+                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
 
         project.setName(request.getName());
         project.setDescription(request.getDescription());
@@ -69,14 +70,14 @@ public class ProjectService {
 
     public void deleteProject(Long id) {
         Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
+                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
 
         projectRepository.delete(project);
     }
 
     public ProjectDashboardResponse getProjectDashboard(Long projectId) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
+                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
 
         long totalTasks = taskRepository.countByProject(project);
         long completedTasks = taskRepository.countByProjectAndStatus(project, TaskStatus.DONE);
@@ -99,10 +100,10 @@ public class ProjectService {
 
         List<Project> projects = new ArrayList<>();
 
-        // projects created/owned by users
+        // project yang dibuat/di-owner oleh user
         projects.addAll(projectRepository.findByOwner(user));
 
-        // project in which the user becomes a member
+        // project yang user menjadi member
         List<ProjectMember> memberships = projectMemberRepository.findByUser(user);
 
         for (ProjectMember member : memberships) {
@@ -139,22 +140,24 @@ public class ProjectService {
     /** Delete project + all tasks, files, members (owner only) */
     public void deleteProjectFull(Long projectId, User user) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
+                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
         if (!project.getOwner().getId().equals(user.getId()))
             throw new RuntimeException("Only the project owner can delete this project.");
 
         List<Task> tasks = taskRepository.findByProject(project);
         for (Task task : tasks) {
-            // Delete physical files
+            // Delete files from Cloudinary (files now live there, not on local disk)
             for (TaskFile file : taskFileRepository.findByTask(task)) {
-                if (file.getFilePath() != null) {
-                    try { Files.deleteIfExists(Paths.get(file.getFilePath())); } catch (Exception ignored) {}
+                if (file.getCloudinaryPublicId() != null) {
+                    cloudinaryService.delete(file.getCloudinaryPublicId(), file.getCloudinaryResourceType());
                 }
                 taskFileRepository.delete(file);
             }
             taskHistoryRepository.deleteAll(taskHistoryRepository.findByTask(task));
             taskRepository.delete(task);
         }
+        // Chat/memo messages also reference the project - must be removed before the project itself
+        projectMessageRepository.deleteAll(projectMessageRepository.findByProjectOrderByCreatedAtAsc(project));
         projectMemberRepository.deleteAll(projectMemberRepository.findByProject(project));
         projectRepository.delete(project);
     }
@@ -162,7 +165,7 @@ public class ProjectService {
     /** Edit project name & description (owner only) */
     public Project editProject(Long projectId, String name, String description, User user) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
+                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
         if (!project.getOwner().getId().equals(user.getId()))
             throw new RuntimeException("Only the project owner can edit this project.");
         project.setName(name.trim());
@@ -173,11 +176,11 @@ public class ProjectService {
     /** Remove a member from the project (owner only, cannot remove owner) */
     public void removeMember(Long projectId, Long memberId, User user) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
+                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
         if (!project.getOwner().getId().equals(user.getId()))
             throw new RuntimeException("Only the project owner can remove members.");
         ProjectMember member = projectMemberRepository.findById(memberId)
-                .orElseThrow(() -> new RuntimeException("Member not found"));
+                .orElseThrow(() -> new RuntimeException("Member tidak ditemukan"));
         if (member.getUser().getId().equals(project.getOwner().getId()))
             throw new RuntimeException("Cannot remove the project owner.");
         projectMemberRepository.delete(member);
