@@ -41,3 +41,8 @@ app.mail.sender-name=TaskFlow
 app.mail.from-address=your-sender@yourdomain.com
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
+
+# Brevo (HTTPS Transactional Email API, not SMTP)
+# You don't need the following if you use api keys: 
+# spring.mail.host, spring.mail.port, spring.mail.username, spring.mail.password, spring.mail.properties.mail.smtp.auth, spring.mail.properties.mail.smtp.starttls.enable
+brevo.api-key=YOUR_API_KEY_FROM_BREVO
