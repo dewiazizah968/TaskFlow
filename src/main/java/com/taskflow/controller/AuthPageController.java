@@ -65,7 +65,7 @@ public class AuthPageController {
         String email = authentication.getName();
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         DashboardResponse dashboard = dashboardService.getDashboardData(user);
 

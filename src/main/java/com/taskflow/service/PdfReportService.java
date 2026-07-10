@@ -33,7 +33,7 @@ public class PdfReportService {
 
     public byte[] generateProjectReport(Long projectId) throws Exception {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Project not found"));
 
         List<Task> tasks = taskRepository.findByProject(project);
 
@@ -87,7 +87,7 @@ public class PdfReportService {
         document.add(sectionHeading("Task List (" + totalTasks + ")"));
 
         if (tasks.isEmpty()) {
-            document.add(new Paragraph("Belum ada task di project ini.", body(10.5f, TEXT_MUTED)));
+            document.add(new Paragraph("There are no tasks in this project yet.", body(10.5f, TEXT_MUTED)));
         } else {
             PdfPTable table = emptyTableHeader(
                     new String[]{"Title", "Status", "Priority", "Assigned To", "Deadline"},

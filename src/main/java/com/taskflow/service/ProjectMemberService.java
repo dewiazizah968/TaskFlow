@@ -28,22 +28,22 @@ public class ProjectMemberService {
 
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() ->
-                        new RuntimeException("Project tidak ditemukan"));
+                        new RuntimeException("Project not found"));
 
         String email = request.getEmail() == null
                 ? null
                 : request.getEmail().trim();
 
         if (email == null || email.isEmpty()) {
-            throw new RuntimeException("Email tidak boleh kosong");
+            throw new RuntimeException("Email cannot be empty");
         }
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
-                        new RuntimeException("User dengan email tersebut tidak ditemukan"));
+                        new RuntimeException("User with that email was not found"));
 
         if (user.getId().equals(project.getOwner().getId())) {
-            throw new RuntimeException("User tersebut adalah owner project ini");
+            throw new RuntimeException("This user is the owner of this project");
         }
 
         boolean memberExists =
@@ -53,7 +53,7 @@ public class ProjectMemberService {
 
         if (memberExists) {
             throw new RuntimeException(
-                    "User sudah menjadi anggota project");
+                    "User is already a member of the project");
         }
 
         ProjectMember projectMember =
@@ -72,7 +72,7 @@ public class ProjectMemberService {
     public List<ProjectMember> getMembersByProject(Long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() ->
-                        new RuntimeException("Project tidak ditemukan"));
+                        new RuntimeException("Project not found"));
 
         return projectMemberRepository.findByProject(project);
     }

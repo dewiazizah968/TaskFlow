@@ -84,7 +84,7 @@ public class ProfileController {
     @GetMapping("/profile/image/{userId}")
     public ResponseEntity<Void> getUserImage(@PathVariable Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
         return redirectToImage(user);
     }
 
@@ -99,6 +99,6 @@ public class ProfileController {
 
     private User getUser(Authentication authentication) {
         return userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 }

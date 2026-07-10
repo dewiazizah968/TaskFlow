@@ -39,7 +39,7 @@ public class NotificationController {
     @GetMapping("/me")
     public List<NotificationResponse> getMyNotifications(Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
         return notificationRepository.findByUserAndIsReadFalse(user)
                 .stream()
                 .map(n -> {
@@ -70,7 +70,7 @@ public class NotificationController {
             Authentication authentication) {
 
         User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         notificationRepository.findById(id).ifPresent(n -> {
             n.setRead(true);

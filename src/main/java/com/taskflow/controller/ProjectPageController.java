@@ -51,7 +51,7 @@ public class ProjectPageController {
         String email = authentication.getName();
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         List<Project> projects = projectService.getProjectsForUser(user);
 
@@ -120,7 +120,7 @@ public class ProjectPageController {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
-                        new RuntimeException("User tidak ditemukan"));
+                        new RuntimeException("User not found"));
 
         projectService.createProject(request, user);
 
@@ -136,7 +136,7 @@ public class ProjectPageController {
         String email = authentication.getName();
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         String[] colors = {
                 "#6366f1", "#22c55e", "#f59e0b",
@@ -220,7 +220,7 @@ public class ProjectPageController {
         String email = authentication.getName();
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         StatusUpdateRequest request = new StatusUpdateRequest();
         request.setStatus(status);
@@ -363,7 +363,7 @@ public class ProjectPageController {
 
     private User getUser(Authentication authentication) {
         return userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
 }

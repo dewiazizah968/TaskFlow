@@ -39,10 +39,10 @@ public class ProjectChatService {
 
         String content = request.getContent() == null ? "" : request.getContent().trim();
         if (content.isEmpty()) {
-            throw new RuntimeException("Pesan tidak boleh kosong");
+            throw new RuntimeException("Message cannot be empty");
         }
         if (content.length() > 2000) {
-            throw new RuntimeException("Pesan terlalu panjang (maksimal 2000 karakter)");
+            throw new RuntimeException("Message is too long (maximum 2000 characters)");
         }
 
         ProjectMessage message = ProjectMessage.builder()
@@ -115,7 +115,7 @@ public class ProjectChatService {
 
     private Project getProjectOrThrow(Long projectId) {
         return projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Project not found"));
     }
 
     private ChatMessageResponse toResponse(ProjectMessage message, User currentUser) {

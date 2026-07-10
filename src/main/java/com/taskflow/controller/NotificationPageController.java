@@ -28,7 +28,7 @@ public class NotificationPageController {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
-                        new RuntimeException("User tidak ditemukan"));
+                        new RuntimeException("User not found"));
 
         model.addAttribute(
                 "notifications",

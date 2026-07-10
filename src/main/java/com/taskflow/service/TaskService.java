@@ -36,10 +36,10 @@ public class TaskService {
     public Task createTask(TaskRequest request) {
 
         Project project = projectRepository.findById(request.getProjectId())
-                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Project not found"));
 
         User assignedUser = userRepository.findById(request.getAssignedUserId())
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         boolean isMember = projectMemberRepository
                 .findByProjectAndUser(project, assignedUser)
@@ -67,18 +67,18 @@ public class TaskService {
 
         public Task getTaskById(Long id) {
         return taskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Task not found"));
         }
 
         public Task updateTask(Long id, TaskRequest request) {
         Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Task not found"));
 
         Project project = projectRepository.findById(request.getProjectId())
-                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Project not found"));
 
         User assignedUser = userRepository.findById(request.getAssignedUserId())
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         boolean isMember = projectMemberRepository
                 .findByProjectAndUser(project, assignedUser)
@@ -100,7 +100,7 @@ public class TaskService {
 
         public void deleteTask(Long id) {
         Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Task not found"));
 
         taskRepository.delete(task);
         }
@@ -109,7 +109,7 @@ public class TaskService {
 
         Task task = taskRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Task tidak ditemukan"));
+                        new RuntimeException("Task not found"));
 
         String oldStatus = task.getStatus().name();
 
@@ -147,7 +147,7 @@ public class TaskService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() ->
-                        new RuntimeException("User tidak ditemukan"));
+                        new RuntimeException("User not found"));
 
         return taskRepository.findByAssignedUser(user);
         }
@@ -156,7 +156,7 @@ public class TaskService {
 
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() ->
-                        new RuntimeException("Task tidak ditemukan"));
+                        new RuntimeException("Task not found"));
 
         return taskHistoryRepository.findByTask(task);
         }
@@ -167,7 +167,7 @@ public class TaskService {
                 User currentUser) {
 
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Task not found"));
 
         boolean isOwner = task.getProject()
                 .getOwner()
@@ -179,7 +179,7 @@ public class TaskService {
                 .equals(currentUser.getId());
 
         if (!isOwner && !isAssignedUser) {
-                throw new RuntimeException("Kamu tidak memiliki akses untuk mengubah status task ini");
+                throw new RuntimeException("You do not have access to change the status of this task.");
         }
 
         String oldStatus = task.getStatus().name();
@@ -203,7 +203,7 @@ public class TaskService {
     /** Delete a task + all its files (owner of project only) */
     public void deleteTaskFull(Long taskId, User user) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Task not found"));
         if (!task.getProject().getOwner().getId().equals(user.getId()))
             throw new RuntimeException("Only the project owner can delete tasks.");
         for (TaskFile file : taskFileRepository.findByTask(task)) {
@@ -219,7 +219,7 @@ public class TaskService {
     /** Edit task fields (owner of project only) */
     public Task editTask(Long taskId, TaskRequest request, User user) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Task not found"));
         if (!task.getProject().getOwner().getId().equals(user.getId()))
             throw new RuntimeException("Only the project owner can edit tasks.");
         if (request.getTitle() != null) task.setTitle(request.getTitle().trim());
@@ -230,7 +230,7 @@ public class TaskService {
         }
         if (request.getAssignedUserId() != null) {
             User assignee = userRepository.findById(request.getAssignedUserId())
-                    .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                    .orElseThrow(() -> new RuntimeException("User not found"));
             task.setAssignedUser(assignee);
         }
         return taskRepository.save(task);

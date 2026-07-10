@@ -74,7 +74,7 @@
                 <!-- Action column -->
                 <div class="action-col">
                     <button class="btn btn-outline" onclick="openChatModal()"
-                            th:text="${#lists.isEmpty(members)} ? '📝 Memo' : '💬 Group Chat'">💬 Group Chat</button>
+                            th:text="${members.size() <= 1} ? '📝 Memo' : '💬 Group Chat'">💬 Group Chat</button>
                     <button class="btn btn-outline" onclick="openAddMemberModal()">👥 Add Members</button>
                     <a th:href="@{/api/projects/{id}/report(id=${project.id})}" class="btn btn-outline">📤 Export Data</a>
                     <!-- Owner-only actions -->
@@ -284,19 +284,19 @@
 <div id="chatModal" class="modal-overlay" onclick="if(event.target===this)closeChatModal()">
     <div class="modal-box chat-box">
         <div class="modal-header">
-            <h3 th:text="${#lists.isEmpty(members)} ? '📝 Personal Memo' : '💬 Group Chat'">Group Chat</h3>
+            <h3 th:text="${members.size() <= 1} ? '📝 Personal Memo' : '💬 Group Chat'">Group Chat</h3>
             <button class="modal-close" onclick="closeChatModal()">✕</button>
         </div>
         <p class="chat-hint"
-           th:text="${#lists.isEmpty(members)}
-                ? 'Belum ada anggota lain di project ini — pakai ruang ini sebagai catatan pribadimu.'
-                : 'Pesan di sini bisa dilihat oleh semua anggota project ini.'">Hint</p>
+           th:text="${members.size() <= 1}
+                ? 'There are no other members in this project yet — use this space as your private notes.'
+                : 'Messages here can be seen by all members of this project.'">Hint</p>
         <div id="chatMessages" class="chat-messages">
             <div class="chat-loading">Loading…</div>
         </div>
         <form id="chatForm" onsubmit="return false;" class="chat-input-row">
             <textarea id="chatInput" rows="1"
-                      th:placeholder="${#lists.isEmpty(members)} ? 'Tulis catatan…' : 'Tulis pesan…'"
+                      th:placeholder="${members.size() <= 1} ? 'Write a note…' : 'Write a message…'"
                       maxlength="2000"></textarea>
             <button type="submit" class="btn btn-primary" onclick="sendChatMessage()">Kirim</button>
         </form>
@@ -485,14 +485,14 @@ function loadChatHistory() {
         .then(messages => {
             box.innerHTML = '';
             if (!messages || messages.length === 0) {
-                box.innerHTML = '<div class="chat-empty">Belum ada pesan. Mulai obrolan sekarang!</div>';
+                box.innerHTML = '<div class="chat-empty">No messages yet. Start chatting now!</div>';
             } else {
                 messages.forEach(appendChatMessage);
             }
             chatLastId = messages && messages.length ? messages[messages.length - 1].id : 0;
             scrollChatToBottom();
         })
-        .catch(() => { box.innerHTML = '<div class="chat-empty">Gagal memuat pesan.</div>'; });
+        .catch(() => { box.innerHTML = '<div class="chat-empty">Failed to load message.</div>'; });
 }
 
 function pollNewChatMessages() {
@@ -535,7 +535,7 @@ function sendChatMessage() {
             input.value = '';
             scrollChatToBottom();
         })
-        .catch(() => alert('Gagal mengirim pesan. Coba lagi.'))
+        .catch(() => alert('Failed to send message. Please try again.'))
         .finally(() => { input.disabled = false; input.focus(); });
 }
 

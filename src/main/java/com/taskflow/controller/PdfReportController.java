@@ -22,7 +22,7 @@ public class PdfReportController {
     public ResponseEntity<byte[]> generateReport(@PathVariable Long projectId) throws Exception {
 
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Project not found"));
 
         byte[] pdf = pdfReportService.generateProjectReport(projectId);
 

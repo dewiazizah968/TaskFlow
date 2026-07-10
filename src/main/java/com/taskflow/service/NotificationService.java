@@ -50,7 +50,7 @@ public class NotificationService {
                 .user(invitedUser)
                 .project(project)
                 .type("PROJECT_INVITE")
-                .message("Kamu diundang bergabung ke project '" + project.getName() + "' oleh "
+                .message("You are invited to join the project '" + project.getName() + "' by "
                         + project.getOwner().getName() + ".")
                 .build();
 
@@ -73,7 +73,7 @@ public class NotificationService {
                 .user(recipient)
                 .project(project)
                 .type("PROJECT_CHAT")
-                .message(sender.getName() + " mengirim pesan baru di grup chat project '" + project.getName() + "'.")
+                .message(sender.getName() + " send a new message in the project chat group '" + project.getName() + "'.")
                 .build();
 
         notificationRepository.save(notification);
@@ -81,7 +81,7 @@ public class NotificationService {
 
     public List<Notification> getNotificationsByUser(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         return notificationRepository.findByUser(user);
     }

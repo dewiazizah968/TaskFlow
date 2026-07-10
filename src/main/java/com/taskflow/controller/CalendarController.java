@@ -33,7 +33,7 @@ public class CalendarController {
         String email = authentication.getName();
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         String[] colors = {
                 "#6366f1",
@@ -61,7 +61,7 @@ public class CalendarController {
         String email = authentication.getName();
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         List<Project> userProjects = projectService.getProjectsForUser(user);
 

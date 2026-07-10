@@ -28,7 +28,7 @@ public class TaskFileService {
 
     public TaskFile uploadFile(Long taskId, MultipartFile file) throws Exception {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Task not found"));
 
         CloudinaryService.UploadResult uploaded = cloudinaryService.upload(file, CLOUDINARY_FOLDER);
 
@@ -47,7 +47,7 @@ public class TaskFileService {
 
     public TaskFile addLink(Long taskId, String title, String linkUrl) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Task not found"));
 
         TaskFile taskFile = TaskFile.builder()
                 .fileName(title)
@@ -66,10 +66,10 @@ public class TaskFileService {
      */
     public ResponseEntity<Void> downloadFile(Long fileId) {
         TaskFile taskFile = taskFileRepository.findById(fileId)
-                .orElseThrow(() -> new RuntimeException("File tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("File not found"));
 
         if (taskFile.getFilePath() == null) {
-            throw new RuntimeException("File tidak ditemukan di Cloudinary");
+            throw new RuntimeException("File not found");
         }
 
         return ResponseEntity.status(HttpStatus.FOUND)
@@ -79,7 +79,7 @@ public class TaskFileService {
 
     public void deleteFile(Long fileId) {
         TaskFile taskFile = taskFileRepository.findById(fileId)
-                .orElseThrow(() -> new RuntimeException("File tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("File not found"));
 
         if (taskFile.getCloudinaryPublicId() != null) {
             cloudinaryService.delete(taskFile.getCloudinaryPublicId(), taskFile.getCloudinaryResourceType());

@@ -37,7 +37,7 @@ public class ProjectService {
     public Project createProject(ProjectRequest request) {
 
         User owner = userRepository.findById(request.getOwnerId())
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         Project project = Project.builder()
                 .name(request.getName())
@@ -54,12 +54,12 @@ public class ProjectService {
 
     public Project getProjectById(Long id) {
         return projectRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Project not found"));
     }
 
     public Project updateProject(Long id, ProjectRequest request) {
         Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Project not found"));
 
         project.setName(request.getName());
         project.setDescription(request.getDescription());
@@ -69,14 +69,14 @@ public class ProjectService {
 
     public void deleteProject(Long id) {
         Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Project not found"));
 
         projectRepository.delete(project);
     }
 
     public ProjectDashboardResponse getProjectDashboard(Long projectId) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Project not found"));
 
         long totalTasks = taskRepository.countByProject(project);
         long completedTasks = taskRepository.countByProjectAndStatus(project, TaskStatus.DONE);
@@ -99,10 +99,10 @@ public class ProjectService {
 
         List<Project> projects = new ArrayList<>();
 
-        // project yang dibuat/di-owner oleh user
+        // projects created/owned by users
         projects.addAll(projectRepository.findByOwner(user));
 
-        // project yang user menjadi member
+        // project in which the user becomes a member
         List<ProjectMember> memberships = projectMemberRepository.findByUser(user);
 
         for (ProjectMember member : memberships) {
@@ -139,7 +139,7 @@ public class ProjectService {
     /** Delete project + all tasks, files, members (owner only) */
     public void deleteProjectFull(Long projectId, User user) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Project not found"));
         if (!project.getOwner().getId().equals(user.getId()))
             throw new RuntimeException("Only the project owner can delete this project.");
 
@@ -162,7 +162,7 @@ public class ProjectService {
     /** Edit project name & description (owner only) */
     public Project editProject(Long projectId, String name, String description, User user) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Project not found"));
         if (!project.getOwner().getId().equals(user.getId()))
             throw new RuntimeException("Only the project owner can edit this project.");
         project.setName(name.trim());
@@ -173,11 +173,11 @@ public class ProjectService {
     /** Remove a member from the project (owner only, cannot remove owner) */
     public void removeMember(Long projectId, Long memberId, User user) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Project not found"));
         if (!project.getOwner().getId().equals(user.getId()))
             throw new RuntimeException("Only the project owner can remove members.");
         ProjectMember member = projectMemberRepository.findById(memberId)
-                .orElseThrow(() -> new RuntimeException("Member tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("Member not found"));
         if (member.getUser().getId().equals(project.getOwner().getId()))
             throw new RuntimeException("Cannot remove the project owner.");
         projectMemberRepository.delete(member);

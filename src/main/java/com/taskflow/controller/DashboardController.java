@@ -27,7 +27,7 @@ public class DashboardController {
         String email = authentication.getName();
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         byte[] pdfData = userDataExportService.exportUserProjects(user);
 
